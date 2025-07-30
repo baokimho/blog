@@ -1,7 +1,15 @@
 class SiteController {
+    constructor() {
+        console.log('✅ SiteController constructor loaded!');
+    }
     // GET /home
     index(req, res) {
-        res.render('home');
+        // res.render('home');
+        res.json({
+            name: 'Bao Kim',
+            age: 18,
+        })
+        console.log('Home page accessed');
     }
 
     // GET /search
