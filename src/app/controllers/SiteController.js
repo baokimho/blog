@@ -1,16 +1,21 @@
+const Course = require('../models/Course');
+const { multipleMongooseToObject } = require('../../util/mongoose');
+
 class SiteController {
-    constructor() {
-        console.log('✅ SiteController constructor loaded!');
-    }
+
     // GET /home
-    index(req, res) {
-        res.json({
-            name: 'Bao Kim',
-            age: 18,
-        })
-        console.log('Home page accessed');
+    async index(req, res, next) {
+        try {
+            const courses = await Course.find({});
+            res.render('home', { courses: multipleMongooseToObject(courses), title: 'Home Page' });
+        } catch (error) {
+            next(error);
+        }
+
+        
     }
 
+    
     // GET /search
     search(req, res) {
         res.render('search');

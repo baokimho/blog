@@ -15,19 +15,21 @@ db.connect();
 app.use(express.json());
 
 // app.use(morgan('combined'))
+app.set('view cache', false);
 app.engine(
     'hbs',
     handlebars.engine({
         extname: 'hbs',
+        cache: false,
     }),
 );
 
 app.set('view engine', 'hbs');
 
-app.set('views', path.join(__dirname, 'resources/views'));
+app.set('views', path.join(__dirname, 'resources', 'views'));
 
 route(app);
 
 app.listen(port, () => {
-    console.log(`Example app listening on port http://localhost:${port}`);
+    console.log(`App listening on port http://localhost:${port}`);
 });
