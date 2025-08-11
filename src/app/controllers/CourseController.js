@@ -4,12 +4,22 @@ const slugify = require('slugify');
 
 class CourseController {
 
-    async #generateSlug(name) {
+    async generateSlug(name, excludeId = null) {
         const baseSlug = slugify(name, { replacement: '-', trim: true, lower: true, strict: false });
         let slug = baseSlug;
         let count = 1;
 
-        while (await Course.findOne({ slug })) {
+        while (true) {
+            const query = { slug };
+            if (excludeId) {
+                query._id = { $ne: excludeId }; // Loại trừ course đang edit
+            }
+            
+            const existingCourse = await Course.findOne(query);
+            if (!existingCourse) {
+                break; // Slug available
+            }
+            
             slug = `${baseSlug}-${count}`;
             count++;
         }
@@ -28,7 +38,7 @@ class CourseController {
             const formData = req.body;
             formData.image = `https://img.youtube.com/vi/${formData.videoId}/sddefault.jpg`;
             // formData.slug = formData.name.toLowerCase().replace(/ /g, '-');
-            formData.slug = await this.#generateSlug(formData.name);
+            formData.slug = await this.generateSlug(formData.name);
             console.log('Form data before save:', formData);
             
             const course = new Course(formData);
@@ -56,7 +66,64 @@ class CourseController {
             next(error);
         }
         
+    }   
+    // GET /courses/:id/edit
+    async edit(req, res, next) {
+        try {
+            const course = await Course.findById(req.params.id)
+            if (!course) {
+                return res.status(404).send('Course not found');
+            }
+            res.render('courses/edit', { course: mongooseToObject(course) });
+        } catch (error) {
+            next(error);
+        }
     }
+
+    // PUT /courses/:id
+    async update(req, res, next) {
+
+        console.log('typeof this.generateSlug:', typeof this.generateSlug);
+
+        try {
+            const formData = req.body;
+            
+            // Update image if videoId changed
+            if (formData.videoId) {
+                formData.image = `https://img.youtube.com/vi/${formData.videoId}/sddefault.jpg`;
+            }
+            
+            // Update slug if name changed
+            if (formData.name) {
+                formData.slug = await this.generateSlug(formData.name, req.params.id);
+            }
+            
+            console.log('Updating course with data:', formData);
+            
+            const course = await Course.findByIdAndUpdate(
+                req.params.id, 
+                formData, 
+                { new: true, runValidators: true }
+            );
+            
+            if (!course) {
+                return res.status(404).send('Course not found');
+            }
+            
+            console.log('Course updated:', course);
+            res.redirect(`/courses/${course.slug}`);
+        } catch (error) {
+            console.error('Error updating course:', error);
+            next(error);
+        }
+    }
+
+    delete(req, res, next) {
+        Course.deleteOne({ _id: req.params.id })
+            .then(() => res.redirect('/me/stored/courses'))
+            .catch(next);
+    }
+
 }
 
 module.exports = new CourseController();
